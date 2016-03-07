@@ -1,7 +1,6 @@
 package SLHA;
 
 use strict;
-use integer;
 use Storable qw(dclone);
 
 # ================================================================== CONSTRUCTOR

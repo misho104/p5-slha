@@ -1,7 +1,9 @@
 package SLHA;
 
 use strict;
+use warnings;
 use Storable qw(dclone);
+use Scalar::Util qw(looks_like_number);
 
 # ================================================================== CONSTRUCTOR
 sub _fortranparse{
@@ -131,7 +133,7 @@ sub _construct {
       unless($data->{$block}){
         $data   ->{$block} = {};
         $comment->{$block} = { head => $com };
-        if($args =~ /^(.*\s)?Q\s*=\s*([\d.+-ed]+)/i){
+        if($args && $args =~ /^(.*\s)?Q\s*=\s*([\d.+-ed]+)/i){
           $data->{$block}->{q} = _fortranparse($2);
         }
       }
@@ -427,6 +429,15 @@ sub write{
   return @$result;
 }
 
+sub _compare_key($$) {
+  my ($a, $b) = @_;
+  $a =~ s/(\d+) (\d+)/$1*10000+$2/e;
+  $b =~ s/(\d+) (\d+)/$1*10000+$2/e;
+  return (looks_like_number($a) and looks_like_number($b))
+    ? $a <=> $b
+    : $a cmp $b;
+}
+
 sub _write_block{
   my $result = shift;
   my $self   = shift;
@@ -443,10 +454,7 @@ sub _write_block{
   my $hc = defined($com->{head}) ? "   " . $com->{head} : "";
 
   push(@$result, "BLOCK $block$q$hc\n");
-  foreach my $k(sort { my ($c, $d) = ($a, $b);
-                       $c =~ s/(\d+) (\d+)/$1*10000+$2/e;
-                       $d =~ s/(\d+) (\d+)/$1*10000+$2/e; $c <=> $d
-                } keys(%$data)){
+  foreach my $k(sort _compare_key keys(%$data)){
     next if $k eq 'q';
     my $c = $com->{$k} || "";
 
